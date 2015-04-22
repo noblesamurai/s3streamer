@@ -18,13 +18,33 @@ describe('s3streamer', function() {
         done();
       });
     });
-    it('bucket does exist no data to emit', function(done) {
+    it('emits error when bucket does not exist', function(done) {
+      this.timeout(10000);
+
+      var s3stream = require('..')(s3Config),
+          stream = s3stream.objectKeys({Bucket: 'mynotexistingbucket', Prefix: 'dose_not_exists_atLal_all'});
+
+      expect(stream).to.be.ok();
+      stream.on('error', function(err) {
+        expect(err).to.be.an(Error);
+        expect(err.name).to.be('NoSuchBucket');
+        done();
+      });
+    });
+    it('emits an error when the bucket exists but nothing matches', function(done) {
       this.timeout(10000);
 
       var s3stream = require('..')(s3Config),
           stream = s3stream.objectKeys({Bucket: process.env.BUCKET, Prefix: 'dose_not_exists_atLal_all'});
-      stream.on('end', done);
+
+      expect(stream).to.be.ok();
+      stream.on('error', function(err) {
+        expect(err).to.be.an(Error);
+        expect(err.name).to.be('NoSuchPrefix');
+        done();
+      });
     });
+
     it('bucket does exist, data to emit', function(done) {
       this.timeout(10000);
 

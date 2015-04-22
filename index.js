@@ -33,6 +33,12 @@ module.exports = function(s3Config) {
           return callback(error);
         }
 
+        if (response.Contents.length === 0) {
+          var err = new Error();
+          err.name = 'NoSuchPrefix';
+          return callback(err);
+        }
+
         // Normal case, emit some data.
         if (count < response.Contents.length) {
           return callback(null, {key: response.Contents[count].Key, bucket: params.Bucket});
