@@ -45,6 +45,7 @@ describe('s3streamer', function() {
       objectKeys.pipe(s3stream.getObject).on('data', function(data) {
         expect(data).to.be.an(Object);
         expect(data).to.have.keys('key', 'body');
+        expect(data.key).to.be.ok();
         done();
       });
     });
