@@ -1,6 +1,6 @@
 {
   "name": "s3streamer",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "Stream objects from S3.",
   "main": "index.js",
   "scripts": {
