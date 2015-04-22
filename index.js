@@ -50,10 +50,10 @@ module.exports = function(s3Config) {
      * Output: An object stream containing the key and body of those objects,
      * fetched from S3.
      */
-    getObject: es.map(function (data, callback) {
-      s3.getObject({Bucket: data.bucket, Key: data.key}, function(err, data) {
+    getObject: es.map(function (params, callback) {
+      s3.getObject({Bucket: params.bucket, Key: params.key}, function(err, data) {
         if (err) return callback(err);
-        return callback(null, {key: data.Key, body: data.Body});
+        return callback(null, {key: params.key, body: data.Body});
       });
     })
   };
