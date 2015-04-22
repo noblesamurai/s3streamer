@@ -1,43 +1,59 @@
-var AWS = require('aws-sdk');
-var Readable = require('stream').Readable;
-
-var es = require('event-stream');
-
+var AWS = require('aws-sdk'),
+    es = require('event-stream'),
+    streamify = require('stream-array');
 
 module.exports = function(s3Config) {
   var s3 = new AWS.S3(s3Config);
 
   return {
     /*
-     * Output: An object stream representing the objects in the bucket, according
-     * to the given params. Of the form * {key: 'blah', body: Buffer}.
+     * Output: An object stream representing objects in the
+     * bucket, according to the given params. Of the form {key: 'blah', bucket:
+     * 'blah'}
      * See the doco for AWS:S3 listObjects() for possible params.
      */
-    listObjects: function(params) {
-      var rs = Readable();
+    objectKeys: function(params) {
 
-      s3.listObjects(params, gotObjects);
-     
-      function gotObjects(err, data) {
-        if (err) return rs.error(err);
-        es.data.Contents.forEach(function(object) {
-          rs.emit({key: object.Key});
-        });
-        rs.end();
+      var response,
+          error;
+
+      function read(count, callback) {
+        var me = this;
+        // If we haven't called listObjects yet...
+        if (!error && !response) {
+          return s3.listObjects(params, function(err, data) {
+            error = err;
+            response = data;
+            read.call(me, count, callback);
+          });
+        }
+
+        // If there was an error calling listObjects...
+        if (error) {
+          return callback(error);
+        }
+
+        // Normal case, emit some data.
+        if (count < response.Contents.length) {
+          return callback(null, {key: response.Contents[count].Key, bucket: params.Bucket});
+        }
+
+        // We're all out of data!
+        return this.emit('end');
       }
 
-      return rs;
+      return es.readable(read);
     },
 
     /*
-     * Input: An object stream of object keys: {key: 'blah'}
+     * Input: A stream of object keys (strings).
      * Output: An object stream containing the key and body of those objects,
      * fetched from S3.
      */
     getObject: es.map(function (data, callback) {
-      s3.getObject({Key: data.key}, function(err, data) {
+      s3.getObject({Bucket: data.bucket, Key: data.key}, function(err, data) {
         if (err) return callback(err);
-        callback(null, {key: key, body: data.Body});
+        return callback(null, {key: data.Key, body: data.Body});
       });
     })
   };
