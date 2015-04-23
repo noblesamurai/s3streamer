@@ -14,17 +14,17 @@ module.exports = function(s3Config) {
      */
     objectKeys: function(params) {
 
-      var response,
+      var listObjectsResponse,
           error,
           count = 0;
 
       function read() {
         var me = this;
         // If we haven't called listObjects yet...
-        if (!error && !response) {
+        if (!error && !listObjectsResponse) {
           return s3.listObjects(params, function(err, data) {
             error = err;
-            response = data;
+            listObjectsResponse = data;
             return read.call(me);
           });
         }
@@ -34,15 +34,15 @@ module.exports = function(s3Config) {
           return this.emit('error', error);
         }
 
-        if (response.Contents.length === 0) {
+        if (listObjectsResponse.Contents.length === 0) {
           var err = new Error();
           err.name = 'NoSuchPrefix';
           return this.emit('error', err);
         }
 
         // Normal case, emit some data.
-        if (count < response.Contents.length) {
-          var chunk = {key: response.Contents[count].Key, bucket: params.Bucket};
+        if (count < listObjectsResponse.Contents.length) {
+          var chunk = {key: listObjectsResponse.Contents[count].Key, bucket: params.Bucket};
           count++;
           return this.push(chunk);
         }
