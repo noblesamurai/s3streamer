@@ -27,14 +27,10 @@ module.exports = function(s3Config) {
           count = 0;
 
       function read() {
-        console.log('read()');
-        console.log('count', count);
         var me = this;
         // If we haven't called listObjects yet...
         if (!error && !response) {
-            console.log('calling s3.listObjects()', params);
           return s3.listObjects(params, function(err, data) {
-            console.log('called s3.listObjects()', data);
             error = err;
             response = data;
             return read.call(me);
@@ -43,28 +39,23 @@ module.exports = function(s3Config) {
 
         // If there was an error calling listObjects...
         if (error) {
-          console.log('error', error);
           return this.emit('error', error);
         }
 
         if (response.Contents.length === 0) {
           var err = new Error();
           err.name = 'NoSuchPrefix';
-          console.log('error', err);
           return this.emit('error', err);
         }
 
-        console.log('Contents.length', response.Contents.length);
         // Normal case, emit some data.
         if (count < response.Contents.length) {
-          console.log('push data');
           var chunk = {key: response.Contents[count].Key, bucket: params.Bucket};
           count++;
           return this.push(chunk);
         }
 
         // We're all out of data!
-        console.log('end!');
         return this.push(null);
       }
 
