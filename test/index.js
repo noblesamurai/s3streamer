@@ -74,7 +74,7 @@ describe('s3streamer', function() {
     it('gets the objects', function(done) {
       var s3stream = require('..')(s3Config),
           objectKeys = s3stream.objectKeys({Bucket: process.env.BUCKET, Prefix: 'exists'});
-      objectKeys.pipe(s3stream.getObject).on('data', function(data) {
+      objectKeys.pipe(s3stream.getObject()).on('data', function(data) {
         expect(data).to.be.an(Object);
         expect(data).to.have.keys('key', 'body');
         expect(data.key).to.be.ok();

@@ -5,14 +5,6 @@ var AWS = require('aws-sdk'),
 module.exports = function(s3Config) {
   var s3 = new AWS.S3(s3Config);
 
-  var getObject = new Transform({objectMode: true});
-  getObject._transform = function (data, encoding, callback) {
-    s3.getObject({Bucket: data.bucket, Key: data.key}, function(err, response) {
-      if (err) return callback(err);
-      return callback(null, {key: data.key, body: response.Body});
-    });
-  };
-
   return {
     /*
      * Output: An object stream representing objects in the
@@ -69,7 +61,16 @@ module.exports = function(s3Config) {
      * Output: An object stream containing the key and body of those objects,
      * fetched from S3.
      */
-    getObject: getObject
+    getObject: function() {
+      var stream = new Transform({objectMode: true});
+      stream._transform = function (data, encoding, callback) {
+        s3.getObject({Bucket: data.bucket, Key: data.key}, function(err, response) {
+          if (err) return callback(err);
+          return callback(null, {key: data.key, body: response.Body});
+        });
+      };
+      return stream;
+    }
   };
 };
 
