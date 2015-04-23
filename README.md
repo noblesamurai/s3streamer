@@ -17,10 +17,10 @@ $ npm install s3streamer
 ``` js
 var s3streamer = require('s3streamer')(s3credentials);
 
-var objectKeys = s3stream.objectKeys({Bucket: process.env.BUCKET, Prefix: 'myprefix'});
+var objectKeys = s3streamer.objectKeys({Bucket: process.env.BUCKET, Prefix: 'myprefix'});
 // {key: 'blah', bucket: 'thebucketyougave'}, ...
 
-var getObjects = objectKeys.pipe(s3streamer.getObject);
+var getObjects = objectKeys.pipe(s3streamerer.getObject());
 // {key: 'blah', body: 'contents...'}, ...
 
 ```
