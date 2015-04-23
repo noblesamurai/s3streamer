@@ -1,9 +1,17 @@
 var AWS = require('aws-sdk'),
-    es = require('event-stream'),
-    streamify = require('stream-array');
+    Readable = require('stream').Readable,
+    Transform = require('stream').Transform;
 
 module.exports = function(s3Config) {
   var s3 = new AWS.S3(s3Config);
+
+  var getObject = new Transform({objectMode: true});
+  getObject._transform = function (data, encoding, callback) {
+    s3.getObject({Bucket: data.bucket, Key: data.key}, function(err, response) {
+      if (err) return callback(err);
+      return callback(null, {key: data.key, body: response.Body});
+    });
+  };
 
   return {
     /*
@@ -15,40 +23,54 @@ module.exports = function(s3Config) {
     objectKeys: function(params) {
 
       var response,
-          error;
+          error,
+          count = 0;
 
-      function read(count, callback) {
+      function read() {
+        console.log('read()');
+        console.log('count', count);
         var me = this;
         // If we haven't called listObjects yet...
         if (!error && !response) {
+            console.log('calling s3.listObjects()', params);
           return s3.listObjects(params, function(err, data) {
+            console.log('called s3.listObjects()', data);
             error = err;
             response = data;
-            read.call(me, count, callback);
+            return read.call(me);
           });
         }
 
         // If there was an error calling listObjects...
         if (error) {
-          return callback(error);
+          console.log('error', error);
+          return this.emit('error', error);
         }
 
         if (response.Contents.length === 0) {
           var err = new Error();
           err.name = 'NoSuchPrefix';
-          return callback(err);
+          console.log('error', err);
+          return this.emit('error', err);
         }
 
+        console.log('Contents.length', response.Contents.length);
         // Normal case, emit some data.
         if (count < response.Contents.length) {
-          return callback(null, {key: response.Contents[count].Key, bucket: params.Bucket});
+          console.log('push data');
+          var chunk = {key: response.Contents[count].Key, bucket: params.Bucket};
+          count++;
+          return this.push(chunk);
         }
 
         // We're all out of data!
-        return this.emit('end');
+        console.log('end!');
+        return this.push(null);
       }
 
-      return es.readable(read);
+      var stream = new Readable({objectMode: true});
+      stream._read = read;
+      return stream;
     },
 
     /*
@@ -56,12 +78,7 @@ module.exports = function(s3Config) {
      * Output: An object stream containing the key and body of those objects,
      * fetched from S3.
      */
-    getObject: es.map(function (params, callback) {
-      s3.getObject({Bucket: params.bucket, Key: params.key}, function(err, data) {
-        if (err) return callback(err);
-        return callback(null, {key: params.key, body: data.Body});
-      });
-    })
+    getObject: getObject
   };
 };
 

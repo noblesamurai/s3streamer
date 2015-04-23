@@ -17,9 +17,13 @@ describe('s3streamer', function() {
         expect(err).to.be.an(Error);
         done();
       });
+      // Need to attach a data handler for the stream to start flowing.
+      stream.on('data', function(data) {
+        done(new Error('should not get a data chunk'));
+      });
     });
     it('emits error when bucket does not exist', function(done) {
-      this.timeout(10000);
+      this.timeout(15000);
 
       var s3stream = require('..')(s3Config),
           stream = s3stream.objectKeys({Bucket: 'mynotexistingbucket', Prefix: 'dose_not_exists_atLal_all'});
@@ -29,6 +33,10 @@ describe('s3streamer', function() {
         expect(err).to.be.an(Error);
         expect(err.name).to.be('NoSuchBucket');
         done();
+      });
+      // Need to attach a data handler for the stream to start flowing.
+      stream.on('data', function(data) {
+        done(new Error('should not get a data chunk'));
       });
     });
     it('emits an error when the bucket exists but nothing matches', function(done) {
@@ -42,6 +50,10 @@ describe('s3streamer', function() {
         expect(err).to.be.an(Error);
         expect(err.name).to.be('NoSuchPrefix');
         done();
+      });
+      // Need to attach a data handler for the stream to start flowing.
+      stream.on('data', function(data) {
+        done(new Error('should not get a data chunk'));
       });
     });
 
